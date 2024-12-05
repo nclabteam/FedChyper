@@ -14,7 +14,7 @@ def parse_args():
     """Parses command-line arguments."""
     parser = argparse.ArgumentParser(description="Process the Shakespeare dataset.")
     
-    parser.add_argument('--min_size', type=int, default=500, help="Minimum number of samples.")
+    parser.add_argument('--min_size', type=int, default=600, help="Minimum number of samples.")
     parser.add_argument('--split_ratio', type=float, default=0.05, help="Ratio for splitting the dataset into train and test sets.")
     parser.add_argument('--out_file', type=str, default='./shakespeare_processed.pkl', help="Output file path for the processed dataset.")
 
@@ -193,6 +193,7 @@ def main():
     del letter_to_vec
     del fds
     del filtered_dataset
+    
 
 
     print(f"Step 5 => Saving processed dataset to {args.out_file}")
@@ -202,7 +203,8 @@ def main():
     print(f"Processing complete. Processed file saved at: {args.out_file}")
 
     print(f"+++++++++++ Generating Stats +++++++++++")
-    get_stats(filtered_dataset)
+    print_stats(get_stats(processed_dataset))
+    
 
 
 if __name__ == "__main__":

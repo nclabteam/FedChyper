@@ -39,16 +39,7 @@ It will create a virtual env named `venv-flwr` based on `environment.yaml` file
  conda deactivate
  conda activate venv-flwr
 ```
-8. if you intent to use GPU run these commands in terminal
-```bash
-  mkdir -p $CONDA_PREFIX/etc/conda/activate.d
-  echo 'CUDNN_PATH=$(dirname $(python -c "import nvidia.cudnn;print(nvidia.cudnn.__file__)"))' >> $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
-  echo 'export LD_LIBRARY_PATH=$CUDNN_PATH/lib:$CONDA_PREFIX/lib/:$LD_LIBRARY_PATH' >> $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
-```
-8. Then check if GPU is working or not as 
-```bash
-  python -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
-```
+
 ## Running the Experiment
 
 This repository uses `config.yaml` for confugration and we can change the confugration as per our need in `config.yaml` file. Change the dataset, data distribution, ml model and other things in `config.yaml` and run or replace the contents `./config.yaml` with any example config file from `./example_configs`. 
@@ -64,34 +55,28 @@ The outputs will be saved in `out` directory.
 The different confugrations that we used in evaluations are given as saperate `config.yaml` files in `./example_configs` directory
 
 ### Image Classification Using Cifar-10 dataset
-CIFAR-10 dataset is downloaded automatically from Keras.
+CIFAR-10 dataset is downloaded automatically from Flwr Datasets.
 
-* [`CIFAR-10 with IID Data`](/example_configs/ex_config_cifar_iid.yaml)
+* [`FedAvg -> CIFAR-10 with non-IID Data (alpha = 0.1)`](/example_configs/ex_fedavg_config_cifar_niid_0_1.yaml)
 
-* [`CIFAR-10 with non-IID Data (alpha = 0.1)`](/example_configs/ex_config_cifar_niid_0_1.yaml)
+* [`FedAvg + FedAdap -> CIFAR-10 with non-IID Data (alpha = 0.1)`](/example_configs/ex_fedadap_config_cifar_niid_0_5.yaml)
 
-* [`CIFAR-10 with non-IID Data (alpha = 0.5)`](/example_configs/ex_config_cifar_niid_0_5.yaml)
-
-* [`CIFAR-10 with non-IID Data (alpha = 100)`](/example_configs/ex_config_cifar_niid_100.yaml)
 
 ### Next Character Prediction on Shakespeare Dataset
 
-The shakespeare dataset can be downloaded by running 
+The shakespeare dataset can be downloaded and preprocessed by running 
 ```bash
- ./preprocessing/get_shakespeare_data.sh out_dir
-```
- `out_dir` : (path where you want to save the data) and then copy the path of train and test file in the config.yaml file.
-if you cannot run the bash file then run the below command in terminal
-```bash
- chmod +x ./preprocessing/get_shakespeare_data.sh
+ python ./preprocessing/preprocess_shakespeare.py 
 ```
 
-* [`Next Character Prediction Shakespeare`](/example_configs/ex_config_shakespeare.yaml)
+* [`FedAvg -> Next Character Prediction Shakespeare`](/example_configs/ex_fedavg_config_shakespeare.yaml)
+
+* [`FedAvg + FedAdap -> Next Character Prediction Shakespeare`](/example_configs/ex_fedadap_config_shakespeare.yaml)
 
 
 
-These example config files will evaluate FedAvg on the settings. 
-For using FedAvg + FedAdap set the `hpo` true in config and set strategy as 'fedavg'. If you wnant to test other algorithms you can change the strategy accordingly in the config file.
+These example config files will evaluate FedAvg and FedAvg + FedAdap on the settings. 
+If you want to test other algorithms change the strategy accordingly in the config file.
 
 
 ## Graph Plotting
@@ -105,15 +90,13 @@ The configuration file is divided into three sections: `common`, `server`, and `
 ### Common Section
 The `common` section contains the common configurations used in this framework. 
 
-- `data_type` : This field specifies the data distribution type used in the training process. Currently supported data distributions are [ `iid`, `one-class-niid`, `one-class-niid-majority`, `two-class-niid`, or `dirichlet_niid` ] . Detailed explination can be found [here](./docs/data_distribution.md)
-- `hpo` : This field specifies whether hyperparameter optimization from `FedAdap`` should be used in the training process. It could be either `true` or `false`.
-- `dataset` : This field specifies the dataset used in the training process. Currently supported data distributions are [ `fashionmnist`, `mnist`,`cifar-10`,`shakespeare` ]. 
+- `data_type` : This field specifies the data distribution type used in the training process. Currently supported data distributions are [`iid`,`dirichlet_niid`] .
+- `dataset` : This field specifies the dataset used in the training process. Currently supported data distributions are [`mnist`, `cifar10`, `fashion_mnist`, `sasha/dog-food`, `zh-plus/tiny-imagenet`,`flwrlabs/shakespeare`]. 
 - `dirichlet_alpha` : This field is used when `data_type` is set to `dirichlet_niid`. It specifies the Dirichlet concentration parameter.
 - `target_acc` : This field specifies the target accuracy that the model needs to achieve. It can take any value greater than `0`.
-- `model` : This field specifies the model architecture used in the training process. Currently Implemented models are [  `mobilenetv2`, `simplecnn`, `simplednn`, `kerasexpcnn`, `mnistcnn`, `efficientnet`, `fedavgcnn`, `fmcnn`,`resnet-18`,`lstm-shakespeare` ]. For image classification we have used `resnet-18` and for next-character prediction we have used `lstm-shakespeare`
+- `model` : This field specifies the model architecture used in the training process. Currently Implemented models are [ `Net`, `CifarNet`, `SimpleCNN`, `KerasExpCNN`, `MNISTCNN`, `SimpleDNN`, `FMCNNModel`,`FedAVGCNN`,`Resnet18`, `Resnet34`,`ResNet18Pretrained`, `ResNet34Pretrained`,`ResNet18Small`, `ResNet20Small`,`MobileNetV2`,`EfficientNetB0`,`LSTMModel`]. 
 - `optimizer` : This field specifies the optimizer used in the training process. It could be either `sgd` or `adam`.
-- `simulation` : This field specifies whether the training process is run as a simulation or not.
-- `multi_node` : True or False, if you want to use multiple systems to expedite training process. For details please check  https://medium.com/@kundroomajid/a-tutorial-on-running-multi-node-simulations-in-flower-10686371ed72
+- `seed` : This field fixes the seed for reproducibility
 
 ### Server Section
 The `server` section contains the configurations for the server that coordinates the Federated Learning process.
@@ -122,9 +105,10 @@ The `server` section contains the configurations for the server that coordinates
 - `address` : This field specifies the IP address of the server.
 - `fraction_fit` : This field specifies the fraction of participating clients used for training in each round.
 - `min_fit_clients` : This field specifies the minimum number of participating clients required for training in each round.
+- `num_clients` : Total number of clients participating in training.
 - `fraction_evaluate` : This field specifies the fraction of participating clients used for evaluation in each round.
 - `min_avalaible_clients` : This field specifies the minimum number of clients that should be available for the training process.
-- `strategy` : This field specifies the strategy used for Federated Learning. Currently supported strategies are [ `fedavg`, `fedyogi`, `fedadagrad` ,`fedavgm` ]
+- `strategy` : This field specifies the strategy used for Federated Learning. Currently supported strategies are [`FedLaw`, `FedProx`, `FedAvgM`, `FedOpt`, `FedAdam`, `FedMedian`, `FedAvg`,] 
 
 ### Client Section
 The `client` section contains the configurations for the clients participating in the Federated Learning process.
@@ -134,19 +118,30 @@ The `client` section contains the configurations for the clients participating i
 - `lr` : This field specifies the learning rate for each client's training process.
 - `save_train_res` : This field specifies whether to save the training results. It could be either `true` or `false`.
 If `save_train_res` is set to `true`, all the output data like accuracy, loss, time of each round would be saved in the `out` directory.
+- `total_cpus` : No. of CPU cores that are assigned for all simulation
+- `total_gpus` :  No. of GPU's assigned for whole simulation
 - `gpu` : True or False, Use GPU for training or not. Default to False
-  `num_cpus` : 1  # no. of CPU cores that are assigned for each actor Default to 1
-  `num_gpus` : Fraction of GPU assigned to each actor. (num_cpus and num_gpus can only used in simulation mode if `simulation` is set to `True`) For more details on this please refer to https://flower.dev/docs/framework/how-to-run-simulations.html and https://docs.ray.io/en/latest/ray-core/scheduling/resources.html
+- `num_cpus` : No. of CPU cores that are assigned for each actor Default to 1
+- `num_gpus` : Fraction of GPU assigned to each actor. (num_cpus and num_gpus can only used in simulation mode if `simulation` is set to `True`) For more details on this please refer to https://flower.dev/docs/framework/how-to-run-simulations.html and https://docs.ray.io/en/latest/ray-core/scheduling/resources.html
 
 ### Shakespeare
 The `shakespeare` section is only needed if you need to evaluvate shakespeare dataset for next character prediction task.
 
-- `sequence_length` : the length of input sequences characters
-- `vocab_size ` : size of vocabulary
-- `train_file` : path of processed shakespare train file
-- `test_file` : path of processed shakespare test file
+- `file_path` : path of processed shakespare file
 
+### FedAdap
+The `fedadap` sections defines the parameters that are used by the FedAdap algorithm.
 
+- `enable` : This field enables or disables the FedAdap. When set to True, it augments the selected strategy with FedAdap.
+- `early_stopping` : block for config of early stopping part.
+  - `enable` : This field enables or disables early stopping mechanism. When True, it prevents model overfitting by stopping training when performance plateaus.
+  - `patience_es` : This field specifies the number of epochs to wait for improvement before stopping the training. In this case, it is set to 6 epochs.
+  - `min_delta` : This field defines the minimum change in the monitored metric to qualify as an improvement. It is set to 0.01 to distinguish between significant and negligible changes.
+- `reduce_lr` : block for config of dynamic learning rate of FedAdap.
+  - `enable` : This field enables or disables dynamic learning rate reduction. When True, it helps the model converge by gradually reducing the learning rate.
+  - `patience_lr` : This field specifies the number of epochs to wait before reducing the learning rate. It is set to 3 epochs, allowing quicker adaptation.
+  - `factor` : This field sets the multiplication factor for learning rate reduction. Set to 0.9.
+  - `min_lr` : This field sets the minimum limit for learning rate reduction. Set to 0.0001, it prevents the learning rate from becoming too small.
 
 
 

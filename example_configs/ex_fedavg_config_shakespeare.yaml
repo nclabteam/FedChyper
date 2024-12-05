@@ -1,12 +1,13 @@
 ---
 # config
+# Federated Shakespeare data on setting for LSTM using FedAvg
 
 common:
-  data_type : iid # data_type = data distribution one among ['iid','dirichlet_niid',naturalid]
-  dataset : cifar10 # data_set = data set used  one among ['cifar10', 'cifar100', 'mnist', 'fashion_mnist', 'sasha/dog-food', 'zh-plus/tiny-imagenet', 'Mike0307/MNIST-M', 'flwrlabs/usps', 'flwrlabs/shakespeare']
-  dirichlet_alpha : 100 #dirichlet concentration parameter (only used if data_type is dirchlet-niid)
+  data_type : dirichlet_niid # data_type = data distribution one among ['iid','dirichlet_niid',naturalid]
+  dataset : flwrlabs/shakespeare # data_set = data set used  one among ['cifar10', 'cifar100', 'mnist', 'fashion_mnist', 'sasha/dog-food', 'zh-plus/tiny-imagenet', 'Mike0307/MNIST-M', 'flwrlabs/usps', 'flwrlabs/shakespeare']
+  dirichlet_alpha : 0.1 #dirichlet concentration parameter (only used if data_type is dirchlet-niid)
   target_acc : 0.95
-  model : Resnet18 # one among [ Net, CifarNet, SimpleCNN, KerasExpCNN, MNISTCNN, SimpleDNN, FMCNNModel,FedAVGCNN,Resnet18, Resnet34,ResNet18Pretrained, ResNet34Pretrained,ResNet18Small, ResNet20Small,MobileNetV2,EfficientNetB0,LSTMModel]
+  model : LSTMModel # one among [ Net, CifarNet, SimpleCNN, KerasExpCNN, MNISTCNN, SimpleDNN, FMCNNModel,FedAVGCNN,Resnet18, Resnet34,ResNet18Pretrained, ResNet34Pretrained,ResNet18Small, ResNet20Small,MobileNetV2,EfficientNetB0,LSTMModel]
   optimizer : sgd # one among [sgd,adam]
   sgd_momentum : 0.9
   seed : 123  #123, 456, 8911
@@ -36,7 +37,7 @@ client:
 
 
 fedadap:  # config block to handle HPO part in Fedadap
-  enable : True  #use HPO or not
+  enable : False  #use HPO or not
   early_stopping : 
     enable : True     # use early stopping or not
     patience_es : 6

@@ -1,10 +1,11 @@
 ---
 # config
+# CIFAR-10 data on non-IID alpha = 0.1 setting for resnet-18 using FedAvg + FedAdap
 
 common:
-  data_type : iid # data_type = data distribution one among ['iid','dirichlet_niid',naturalid]
+  data_type : dirichlet_niid # data_type = data distribution one among ['iid','dirichlet_niid',naturalid]
   dataset : cifar10 # data_set = data set used  one among ['cifar10', 'cifar100', 'mnist', 'fashion_mnist', 'sasha/dog-food', 'zh-plus/tiny-imagenet', 'Mike0307/MNIST-M', 'flwrlabs/usps', 'flwrlabs/shakespeare']
-  dirichlet_alpha : 100 #dirichlet concentration parameter (only used if data_type is dirchlet-niid)
+  dirichlet_alpha : 0.1 #dirichlet concentration parameter (only used if data_type is dirchlet-niid)
   target_acc : 0.95
   model : Resnet18 # one among [ Net, CifarNet, SimpleCNN, KerasExpCNN, MNISTCNN, SimpleDNN, FMCNNModel,FedAVGCNN,Resnet18, Resnet34,ResNet18Pretrained, ResNet34Pretrained,ResNet18Small, ResNet20Small,MobileNetV2,EfficientNetB0,LSTMModel]
   optimizer : sgd # one among [sgd,adam]
