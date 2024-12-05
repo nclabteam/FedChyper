@@ -25,16 +25,14 @@ If You already have conda installed skip step 4 and 5.
 ```bash
   bash Miniconda3-latest-Linux-x86_64.sh
 ```
-6. This framework is using Tensorflow and if you want to use GPU please refer to the official documentation of tensorflow on how to setup GPU.
-at https://www.tensorflow.org/install/pip
 
-7. Create a new virtual environment using conda
+6. Create a new virtual environment using conda
 ```bash
  conda env create -f environment.yaml
 ```
 It will create a virtual env named `venv-flwr` based on `environment.yaml` file
 
-8. For using virtual environment we need to activate the environment first.
+7. For using virtual environment we need to activate the environment first.
 ```bash
  conda deactivate
  conda activate venv-flwr
