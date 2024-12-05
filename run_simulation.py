@@ -1,73 +1,74 @@
-import os
-import mak
-from mak.utils import get_strategy, generate_config_simulation, get_eval_fn, gen_dir_outfile_server
-from mak.utils import save_simulation_history
-from mak.utils import create_model, compile_model,get_eval_fn, fit_config
-# Make TensorFlow logs less verbose
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+from mak.utils.helper import get_config, set_seed, parse_args
+args = parse_args()
+config_sim = get_config(args.config) 
+set_seed(seed=config_sim['common']['seed'])
 
 import flwr as fl
-from flwr.simulation.ray_transport.utils import enable_tf_gpu_growth
-from client import generate_client
+from logging import INFO
+from flwr.common.logger import log
+from datasets.utils.logging import disable_progress_bar
+import os
+from mak.utils.helper import get_device_and_resources
+from mak.utils.helper import gen_dir_outfile_server, get_model, get_strategy,save_simulation_history,get_dataset, get_size_weights
+from mak.utils.pytorch_transformations import get_transformations
+from mak.clients import get_client_fn
 from mak.custom_server import ServerSaveData
+from mak.utils.dataset_info import dataset_info
 
 
-def main() -> None:
-    # Start Flower simulation
-    config = generate_config_simulation(c_id=-1) # c_id = -1 implies the confugration is for server
 
-    if config['num_cpus'] and (config['num_gpus'] > 0.0 and config['num_gpus'] <= 1.0):
-        client_res = {'num_cpus': config['num_cpus'], 'num_gpus' : config['num_gpus']}
-    else:
-        client_res = {'num_cpus': config['num_cpus'], 'num_gpus' : 0.0}
-
-    if config['gpu']:
-        enable_tf_gpu_growth()
-        actor_kwargs = {"on_actor_init_fn" : enable_tf_gpu_growth}
-    else:
-        actor_kwargs = {}
-        client_res = {'num_cpus': config['num_cpus'], 'num_gpus' : 0.0}
+def main(config_sim):
+    fds, centralized_testset = get_dataset(config_sim=config_sim)
     
-    if config['multi_node']:
-        ray_init_args = {"address" : "auto","runtime_env" : {"py_modules" : [mak]}} #if multi-node cluster is used
+    if config_sim['server']['strategy'] == 'FedLaw':
+        size_weights = get_size_weights(federated_dataset=fds,num_clients=config_sim['server']['num_clients']) #for fedlaw only
     else:
-        ray_init_args = {}
+        size_weights = []
+    
+    dataset_name = fds._dataset_name
+    shape = dataset_info[dataset_name]["input_shape"]
 
-    dataset = config['dataset']
-    num_clients = config['min_avalaible_clients']
-    if dataset == 'cifar-10':
-        input_shape = (32, 32, 3)
-        num_classes = 10
-    elif dataset == 'shakespeare':
-        input_shape = (config['shakespeare']['sequence_length'])
-        num_classes = (config['shakespeare']['vocab_size'])
-    else:
-        input_shape = (28, 28, 1)
-        num_classes = 10
+    model = get_model(config_sim,shape = shape)
+    apply_transforms = get_transformations(dataset_name = dataset_name)
+    device, ray_init_args, client_res = get_device_and_resources(config_sim=config_sim)
+    generated_info = {"shape" : shape, "device": str(device)}
+    config_sim["generated_info"] = generated_info
+    out_file_path, saved_models_path = gen_dir_outfile_server(config=config_sim)
+    if config_sim["common"]["save_log"]:
+        fl.common.logger.configure(identifier="FLNCLAB", filename=os.path.join(saved_models_path,'log.txt'))
+        
+    log(INFO,f" =>>>>> Dataset : {dataset_name} Shape : {shape}") 
 
-    out_file_path = gen_dir_outfile_server(config=config)
+    try:
+        dir_alpha = fds._partitioners['train']._alpha[0]
+    except (AttributeError):
+        dir_alpha = "NA"
 
-    model = create_model(config['model'],input_shape=input_shape,num_classes=num_classes)
-    # Compile model
-    compile_model(model,config['optimizer'],config['lr'])
-    strategy = get_strategy(config=config,get_eval_fn=get_eval_fn,model=model,dataset=dataset,num_clients=num_clients,on_fit_config_fn=fit_config)
+    log(INFO,f" =>>>>> Model : {model._get_name()} Device : {device}")
+    log(INFO,f" =>>>>> Dataset : {dataset_name} Partitoner : {str(fds._partitioners['train']).split('.')[-1]} Alpha : {dir_alpha}")
+    log(INFO,f" =>>>>> Ray init args : {ray_init_args} Client Res : {client_res}")
+
+    strategy = get_strategy(config=config_sim,test_data=centralized_testset,save_model_dir=saved_models_path,out_file_path= out_file_path,device=device,apply_transforms=apply_transforms,size_weights=size_weights)
     server = ServerSaveData(
-        strategy=strategy, client_manager=fl.server.client_manager.SimpleClientManager(),out_file_path=out_file_path,target_acc=config['target_acc'])
-   
+        strategy=strategy, client_manager=fl.server.client_manager.SimpleClientManager(),out_file_path=out_file_path,target_acc=config_sim['common']['target_acc'])
+    
+    log(INFO,f" =>>>>> Using Strategy : {strategy.__class__} Server : {server.__class__}")
+    
     hist = fl.simulation.start_simulation(
-        client_fn=generate_client,
-        num_clients=config['min_avalaible_clients'],
-        config=fl.server.ServerConfig(num_rounds=config['max_rounds']),
-        strategy = strategy,
-        server = server,
-        client_resources = client_res,
-        actor_kwargs = actor_kwargs,
+        client_fn=get_client_fn(config_sim = config_sim, model=model,dataset=fds,device=device,apply_transforms=apply_transforms,save_path=saved_models_path),
+        num_clients=config_sim['server']['num_clients'],
+        client_resources=client_res,
+        config=fl.server.ServerConfig(num_rounds=config_sim['server']['num_rounds']),
+        strategy=strategy,
+        server=server,
+        actor_kwargs={
+            "on_actor_init_fn": disable_progress_bar  # disable tqdm on each actor/process spawning virtual clients
+        },
         ray_init_args = ray_init_args,
     )
 
     simu_data_file_path = out_file_path.replace('.csv','_metrics.csv')
     save_simulation_history(hist=hist,path = simu_data_file_path)
 
-
 if __name__ == "__main__":
-    main()
+    main(config_sim=config_sim)

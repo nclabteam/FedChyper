@@ -2,45 +2,78 @@
 # config
 
 common:
-  data_type : iid #data_type = data distribution one among ['iid','one-class-niid','one-class-niid-majority','two-class-niid','dirichlet-niid']
-  hpo : false #hpo = If hpo is true it uses FedAdap with selected strategy
-  dataset : shakespeare #data_set = data set used  one among [fashionmnist,mnist,cifar-10,shakespeare ]
-  dirichlet_alpha : 0.11 #dirichlet concentration parameter (only used if data_type is dirchlet-niid)
-  target_acc : 0.80
-  model : lstm-shakespeare #one among [mobilenetv2, simplecnn, simplednn, kerasexpcnn, mnistcnn,efficientnet,fedavgcnn,fmcnn,resnet-18,lstm-shakespeare]
+  data_type : iid # data_type = data distribution one among ['iid','dirichlet_niid',naturalid]
+  dataset : cifar10 # data_set = data set used  one among ['cifar10', 'cifar100', 'mnist', 'fashion_mnist', 'sasha/dog-food', 'zh-plus/tiny-imagenet', 'Mike0307/MNIST-M', 'flwrlabs/usps', 'flwrlabs/shakespeare']
+  dirichlet_alpha : 100 #dirichlet concentration parameter (only used if data_type is dirchlet-niid)
+  target_acc : 0.95
+  model : Resnet18 # one among [ Net, CifarNet, SimpleCNN, KerasExpCNN, MNISTCNN, SimpleDNN, FMCNNModel,FedAVGCNN,Resnet18, Resnet34,ResNet18Pretrained, ResNet34Pretrained,ResNet18Small, ResNet20Small,MobileNetV2,EfficientNetB0,LSTMModel]
   optimizer : sgd # one among [sgd,adam]
-  simulation : true
-  verbose : 1 #[0,1,2] verbosity of model training or evaluvation (0 = silent, 1 = progress bar, 2 = one line per epoch)
-  multi_node: false # use multi-node setup or not
+  sgd_momentum : 0.9
+  seed : 123  #123, 456, 8911
+  multi_node : False
+  save_log : True
 
 server:
-  max_rounds : 11
+  num_rounds : 500
   address : 127.0.0.1
   fraction_fit : 0.05
   min_fit_clients: 2
-  min_avalaible_clients : 20  # total number of clients participating in training 
+  num_clients : 200  # total number of clients participating in training
   fraction_evaluate : 0.025
-  strategy : fedavg #Strategy : choices=['fedavg', 'fedyogi', 'fedadagrad', 'fedavgm','fedprox']
+  strategy : FedProx  #[FedLaw, FedProx, FedAvgM, FedOpt, FedAdam, FedMedian, FedAvg,]
 
 client:
-  epochs : 1
-  batch_size : 64
-  lr: 0.01  #[0.0001,0.001,0.005,0.01,0.1,0.2]
+  epochs : 11
+  batch_size : 32
+  test_batch_size : 32
+  lr: 0.01 #  [0.0001,0.001,0.005,0.01,0.1,0.2]
   save_train_res : True
-  gpu : false  # True or False, Use GPU for training or not.
-  num_cpus : 1  # no. of CPU cores that are assigned for each actor
-  num_gpus : 0.0  # no. of GPU that are assigned for each actor (it can be fraction value as well)
+  total_cpus : 30 # no. of CPU cores that are assigned for all simulation
+  total_gpus : 1 # no. of GPU's assigned for whole simulation
+  gpu : True  # True or False, Use GPU for training or not.
+  num_cpus : 3  # no. of CPU cores that are assigned for each actor
+  num_gpus : 0.1 #  no. of GPU that are assigned for each actor (it can be fraction value as well)
+
+
+fedadap:  # config block to handle HPO part in Fedadap
+  enable : False  #use HPO or not
+  early_stopping : 
+    enable : True     # use early stopping or not
+    patience_es : 6
+    min_delta : 0.01
+  reduce_lr : 
+    enable : True     # use reduce lr on pleateau or not
+    patience_lr : 3
+    factor: 0.9
+    min_lr: 0.0001
+    min_delta : 0.01
+  common :
+    monitor: "val_loss"  # Metric to monitor for both ES and LR reduction
+    mode: "min"  # 'min' for loss, 'max' for accuracy
+    verbose: true
+
+fedlaw_config:
+  server_funct : 'exp' #['exp' or 'quad'] #currently exp only is implemented
+  server_optimizer : 'adam'
+  server_valid_ratio : 0.02 #percentage of data used for server side retraining
+  server_epochs : 5
+
+fedprox:
+  proximal_mu : 0.9
+
+straggler:
+  enable : False
+  straggler_prob : 0.1
+  drop_straggler : True
 
 fedex:
   hyperparam_config_nr : 120 # size of hyperparameter search space
   hyperparam_file : './hyperparam-logs/indices.json'
+  discount_factor : 0.9
+  use_gain_avg : False
 
 shakespeare:
-  sequence_length : 100 # the length of input sequences characters
-  vocab_size : 78  # check vocab size of your dataset (actual vocab size +1 )
-  train_file: path_to_shakespare_train_file
-  test_file: path_to_shakespare_test_file
-
+  file_path : './shakespeare_processed.pkl'
 
 
 

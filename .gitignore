@@ -7,7 +7,6 @@ plot_style.txt
 .ipynb_checkpoints
 __pycache__/
 *.pyc
-config.yaml
 distribution_history.csv
 gain_history.csv
 hyperparam-logs/
