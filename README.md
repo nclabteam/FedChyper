@@ -1,4 +1,4 @@
-## FedAdap
+## FedChyper
 
 ### Note: This code is written and tested on Ubuntu and can work easily on any linux based distribution. For windows users some steps needs to changed.
 
@@ -6,7 +6,7 @@
 
 1. Clone this repository using command
 ```bash
- git clone https://github.com/nclabteam/FedAdap.git
+ git clone https://github.com/nclabteam/FedChyper.git
 ```
 2. After clone cd into cloned directory and open terminal.
 
@@ -57,7 +57,7 @@ CIFAR-10 dataset is downloaded automatically from Flwr Datasets.
 
 * [`FedAvg -> CIFAR-10 with non-IID Data (alpha = 0.1)`](/example_configs/ex_fedavg_config_cifar_niid_0_1.yaml)
 
-* [`FedAvg + FedAdap -> CIFAR-10 with non-IID Data (alpha = 0.1)`](/example_configs/ex_fedadap_config_cifar_niid_0_5.yaml)
+* [`FedAvg + FedChyper -> CIFAR-10 with non-IID Data (alpha = 0.1)`](/example_configs/ex_fedadap_config_cifar_niid_0_5.yaml)
 
 
 ### Next Character Prediction on Shakespeare Dataset
@@ -69,16 +69,16 @@ The shakespeare dataset can be downloaded and preprocessed by running
 
 * [`FedAvg -> Next Character Prediction Shakespeare`](/example_configs/ex_fedavg_config_shakespeare.yaml)
 
-* [`FedAvg + FedAdap -> Next Character Prediction Shakespeare`](/example_configs/ex_fedadap_config_shakespeare.yaml)
+* [`FedAvg + FedChyper -> Next Character Prediction Shakespeare`](/example_configs/ex_fedadap_config_shakespeare.yaml)
 
 
 
-These example config files will evaluate FedAvg and FedAvg + FedAdap on the settings. 
+These example config files will evaluate FedAvg and FedAvg + FedChyper on the settings. 
 If you want to test other algorithms change the strategy accordingly in the config file.
 
 
 ## Graph Plotting
-We can use `graphs_fedadap.ipynb` to generate the graphs, but for that we need to consolidate the data please check `graphs_fedadap.ipynb` for details.
+We can use `graphs_fedchyper.ipynb` to generate the graphs, but for that we need to consolidate the data please check `graphs_chyper.ipynb` for details.
 
 ## Description about  [`config.yaml`](/config.yaml) file
 The `config.yaml` file is a configuration file for this framework that trains a Federated Learning model.
@@ -127,15 +127,15 @@ The `shakespeare` section is only needed if you need to evaluvate shakespeare da
 
 - `file_path` : path of processed shakespare file
 
-### FedAdap
-The `fedadap` sections defines the parameters that are used by the FedAdap algorithm.
+### FedChyper
+The `FedChyper` sections defines the parameters that are used by the FedChyper algorithm.
 
-- `enable` : This field enables or disables the FedAdap. When set to True, it augments the selected strategy with FedAdap.
+- `enable` : This field enables or disables the FedChyper. When set to True, it augments the selected strategy with FedChyper.
 - `early_stopping` : block for config of early stopping part.
   - `enable` : This field enables or disables early stopping mechanism. When True, it prevents model overfitting by stopping training when performance plateaus.
   - `patience_es` : This field specifies the number of epochs to wait for improvement before stopping the training. In this case, it is set to 6 epochs.
   - `min_delta` : This field defines the minimum change in the monitored metric to qualify as an improvement. It is set to 0.01 to distinguish between significant and negligible changes.
-- `reduce_lr` : block for config of dynamic learning rate of FedAdap.
+- `reduce_lr` : block for config of dynamic learning rate of FedChyper.
   - `enable` : This field enables or disables dynamic learning rate reduction. When True, it helps the model converge by gradually reducing the learning rate.
   - `patience_lr` : This field specifies the number of epochs to wait before reducing the learning rate. It is set to 3 epochs, allowing quicker adaptation.
   - `factor` : This field sets the multiplication factor for learning rate reduction. Set to 0.9.
